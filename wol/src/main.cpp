@@ -3,12 +3,18 @@
 
 auto main(int argc, char **argv) -> int
 {
-	const auto hostIp = argc == 1 ? "192.168.0.8" : argv[1];
+	if (argc == 1)
+	{
+		std::cout << "Usage: wol <IPAddress>" << std::endl;
+		return 0;
+	}
+
+	const auto hostIp = argv[1];
 
 	std::cout << "IP " << hostIp << std::endl;
 
 	auto hostMac = trau::arp(hostIp, true);
-	
+
 	std::cout << "Mac: " << hostMac << std::endl;
 
 	try
