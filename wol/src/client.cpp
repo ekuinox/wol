@@ -97,9 +97,18 @@ auto trau::arp(const char * host, bool isString) -> std::string
 	return std::string(str);
 }
 
-// 参考にした https://github.com/timofurrer/WOL/tree/master/src
-// IPからWoLを撃つ
-auto trau::wol(const char * host) -> void
+// 00:00:00:00:00:00を配列にして返す
+auto trau::mactoa(const std::string& str) -> std::array<u_int8_t, 6>
+{
+	std::array<u_int8_t, 6> result;
+	for (size_t i = 0; i < result.max_size(); ++i)
+	{
+		result[i] = static_cast<u_int8_t>(strtol(str.substr(i * 3, 2).c_str(), NULL, 16));
+	}
+	return result;
+}
+
+auto trau::wol(const in_addr ip, const std::array<u_int8_t, 6> mac) -> void
 {
 	constexpr auto PACKET_BUF = 17 * 6;
 	constexpr auto REMOTE_PORT = 9;
@@ -107,10 +116,7 @@ auto trau::wol(const char * host) -> void
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(REMOTE_PORT);
-	if (inet_aton(host, &addr.sin_addr) == 0) throw std::runtime_error("Invalid remote ip address given: %s ...!\n");
-
-	auto mac = arp(host);
-	if (mac.size() != mac.max_size()) throw std::runtime_error("could not resolve ip");
+	addr.sin_addr = ip;
 
 	unsigned char packet[PACKET_BUF];
 	for (auto i = 0; i < 6; i++)
@@ -128,8 +134,31 @@ auto trau::wol(const char * host) -> void
 
 	socketDo(AF_INET, SOCK_DGRAM, IPPROTO_UDP, [&](const int& sock)
 	{
-		if (sendto(sock, packet, sizeof(packet), 0, (struct sockaddr *) &addr, sizeof(addr)) < 0) throw std::runtime_error("Cannot send data: %s ...!\n");
+		if (sendto(sock, packet, sizeof(packet), 0, (struct sockaddr *) &addr, sizeof(addr)) < 0) throw std::runtime_error("Cannot send data...!\n");
 	});
+}
+
+// 参考にした https://github.com/timofurrer/WOL/tree/master/src
+// IPからWoLを撃つ // 打てねえよバカ
+auto trau::wol(const char * host) -> void
+{
+	struct in_addr ip;
+	if (inet_aton(host, &ip) == 0) throw std::runtime_error("Invalid remote ip address given: %s ...!\n");
+
+	auto mac = arp(host);
+	if (mac.size() != mac.max_size()) throw std::runtime_error("could not resolve ip");
+
+	wol(ip, mac);
+}
+
+auto trau::wol(const char * idAddr, const char * macAddr) -> void
+{
+	struct in_addr ip;
+	if (inet_aton(idAddr, &ip) == 0) throw std::runtime_error("Invalid remote ip address given: %s ...!\n");
+
+	auto mac = mactoa(macAddr);
+
+	wol(ip, mac);
 }
 
 // close忘れしないようにしたかった

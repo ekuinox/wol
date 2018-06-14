@@ -3,23 +3,18 @@
 
 auto main(int argc, char **argv) -> int
 {
-	if (argc == 1)
+	if (argc < 3)
 	{
-		std::cout << "Usage: wol <IPAddress>" << std::endl;
+		std::cout << "Usage: wol <IPAddress> <MACAddress>" << std::endl;
 		return 0;
 	}
 
 	const auto hostIp = argv[1];
-
-	std::cout << "IP " << hostIp << std::endl;
-
-	auto hostMac = trau::arp(hostIp, true);
-
-	std::cout << "Mac: " << hostMac << std::endl;
+	const auto hostMac = argv[2];
 
 	try
 	{
-		trau::wol(hostIp);
+		trau::wol(hostIp, hostMac);
 	}
 	catch (std::runtime_error e)
 	{
